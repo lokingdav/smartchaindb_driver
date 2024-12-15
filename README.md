@@ -16,4 +16,7 @@ If you want to spawn multiple processes then run:
 ```bash
 gradle run -PnumProcesses=<int>
 ```
-Replace ```<int>``` with the number of processes to run. Usually the number of CPUs or vCPUs on your machine or even more.
+Replace ```<int>``` with the number of processes to run. Usually the number of CPUs or vCPUs on your machine or even more. Example
+```bash
+gradle run -PnumProcesses=5
+```
