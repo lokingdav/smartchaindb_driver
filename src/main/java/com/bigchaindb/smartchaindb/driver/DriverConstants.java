@@ -6,8 +6,18 @@ import java.util.List;
 public class DriverConstants {
     // Generic constants
     protected static final String SMARTCHAINDB_PUBKEY = "7EAsHUGQ15LdS2NoX9543bgEoZg7BmkVqdxSmiSda3Dv";
-    protected static final List<String> VALIDATOR_NODES = Arrays.asList("http://192.241.134.161:9984/",
-            "http://192.241.134.103:9984/", "http://174.138.37.124:9984/", "http://137.184.137.31:9984/");
+    protected static final List<String> VALIDATOR_NODES = Arrays.asList(
+        "http://172.40.0.10:9984/",
+        "http://172.40.0.11:9984/",
+        "http://172.40.0.12:9984/",
+        "http://172.40.0.13:9984/",
+        "http://172.40.0.14:9984/",
+        "http://172.40.0.15:9984/",
+        "http://172.40.0.16:9984/",
+        "http://172.40.0.17:9984/",
+        "http://172.40.0.18:9984/",
+        "http://172.40.0.19:9984/"
+    );
          
             
      
