@@ -164,4 +164,59 @@ public class TransactionsApi extends AbstractApi {
 		return transferIds;
 	}
 	
+	public static Transaction waitForCommit(String txId) {
+		int maxRetries = 60; //60; // Maximum number of retries
+		int sleepMillis = 5000;//5000; // Time to wait between retries (in milliseconds)
+	
+		for (int i = 0; i < maxRetries; i++) {
+			//System.out.println("--> Querying Transaction " + txId + ". Please wait..." + i);
+			try {
+				Transaction transaction = TransactionsApi.getTransactionById(txId);
+
+				if (transaction != null) {
+					System.out.println("Transaction " + txId + " is committed.");
+					return transaction;
+				}
+			} catch (Exception ex) {
+				//System.out.println("Transaction " + txId + " not found. Retrying..." + i+1);
+			} 
+			
+			try {
+				Thread.sleep(sleepMillis);
+			} catch (InterruptedException ex) {
+				Thread.currentThread().interrupt();
+				throw new RuntimeException("Interrupted while waiting for transaction commit.", ex);
+			}
+		}
+	
+		return null;
+	}
+
+	public static Transaction waitForCommitWorkflow(String txId) {
+		int maxRetries = 60;//60; // Maximum number of retries
+		int sleepMillis = 5000;//5000; // Time to wait between retries (in milliseconds)
+	
+		for (int i = 0; i < maxRetries; i++) {
+			//System.out.println("--> Querying Transaction " + txId + ". Please wait..." + i);
+			try {
+				Transaction transaction = TransactionsApi.getTransactionById(txId);
+
+				if (transaction != null) {
+					System.out.println("Transaction " + txId + " is committed.");
+					return transaction;
+				}
+			} catch (Exception ex) {
+				//System.out.println("Transaction " + txId + " not found. Retrying..." + i+1);
+			} 
+			
+			try {
+				Thread.sleep(sleepMillis);
+			} catch (InterruptedException ex) {
+				Thread.currentThread().interrupt();
+				throw new RuntimeException("Interrupted while waiting for transaction commit.", ex);
+			}
+		}
+	
+		return null;
+	}
 }

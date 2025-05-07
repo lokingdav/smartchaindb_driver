@@ -43,6 +43,7 @@ public class JsonUtils {
         GsonBuilder builder = new GsonBuilder();
 
         builder = builder
+                // .setPrettyPrinting()
                 .serializeNulls()
                 .disableHtmlEscaping()
                 .setDateFormat(jsonDateFormat)

@@ -1,5 +1,6 @@
 package com.bigchaindb.smartchaindb.driver;
 
+import com.bigchaindb.api.TransactionsApi;
 import com.bigchaindb.builders.BigchainDbTransactionBuilder;
 import com.bigchaindb.constants.Operations;
 import com.bigchaindb.model.FulFill;
@@ -13,6 +14,9 @@ import java.security.KeyPair;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import com.fasterxml.jackson.databind.ObjectMapper; // Jackson for JSON serialization
+import java.nio.charset.StandardCharsets;
+
 
 public class Transactions {
 
@@ -37,7 +41,14 @@ public class Transactions {
 
             transaction = builder.sendTransaction(driver.handleServerResponse("CREATE", null, null));
             System.out.println("(*) CREATE Transaction sent.. - " + transaction.getId());
+            ObjectMapper mapper = new ObjectMapper();
+                String transactionJson = mapper.writeValueAsString(transaction); // Serialize to JSON
+                int sizeInBytes = transactionJson.getBytes(StandardCharsets.UTF_8).length;
+                double sizeInKB = sizeInBytes / 1024.0;
 
+                System.out.printf("CREATE Transaction size: %d Bytes (%.3f KB)%n", sizeInBytes, sizeInKB);
+            // wait until transaction is commited, or retry every second until 5 seconds
+            waitForCommit(driver, transaction); 
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -52,8 +63,9 @@ public class Transactions {
      * @param metaData data to append for this transaction
      * @param keys     keys to sign and verify transactions
      */
-    public static void doTransfer(BigchainDBJavaDriver driver, String txId, MetaData metaData, KeyPair keys, KeyPair transferKeys) throws Exception {
-
+    public static Transaction doTransfer(BigchainDBJavaDriver driver, String txId, MetaData metaData, KeyPair keys, KeyPair transferKeys) throws Exception {
+       
+        Transaction transaction = null;
         Map<String, String> assetData = new TreeMap<String, String>();
         assetData.put("id", txId);
 
@@ -72,12 +84,15 @@ public class Transactions {
                     .operation(Operations.TRANSFER)
                     .buildAndSign((EdDSAPublicKey) keys.getPublic(), (EdDSAPrivateKey) keys.getPrivate());
 
-            Transaction transaction = builder.sendTransaction(driver.handleServerResponse("TRANSFER", null, null));
+            transaction = builder.sendTransaction(driver.handleServerResponse("TRANSFER", null, null));
             System.out.println("(*) TRANSFER Transaction sent.. - " + transaction.getId());
 
+            // wait until transaction is commited, or retry every second until 5 seconds
+            waitForCommit(driver, transaction); 
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return transaction ;
     }
 
     public static String doPreRequest(BigchainDBJavaDriver driver, MetaData metaData, KeyPair keys,
@@ -112,6 +127,8 @@ public class Transactions {
             transaction = builder.sendTransaction(driver.handleServerResponse("PRE_REQUEST", null, null));
             System.out.println("(*) PRE-REQUEST Transaction sent.. - " + transaction.getId());
 
+            // wait until transaction is commited, or retry every second until 5 seconds
+            waitForCommit(driver, transaction); 
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -135,6 +152,9 @@ public class Transactions {
                     .sendTransaction(driver.handleServerResponse("INTEREST", null, null));
 
             System.out.println("(*) INTEREST Transaction sent.. - " + transaction.getId());
+
+            // wait until transaction is commited, or retry every second until 5 seconds
+            waitForCommit(driver, transaction); 
             return transaction.getId();
 
         } catch (IOException e) {
@@ -178,6 +198,8 @@ public class Transactions {
             transaction = builder.sendTransaction(driver.handleServerResponse("REQUEST_FOR_QUOTE", metaData, txId));
             System.out.println("(*) REQUEST Transaction sent.. - " + txId);
 
+            // wait until transaction is commited, or retry every second until 5 seconds
+            waitForCommit(driver, transaction); 
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -210,6 +232,8 @@ public class Transactions {
             transaction = builder.sendTransaction(driver.handleServerResponse("BID", metaData, null));
             System.out.println("(*) BID Transaction sent.. - " + transaction.getId());
 
+            // wait until transaction is commited, or retry every second until 5 seconds
+            waitForCommit(driver, transaction); 
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -241,7 +265,14 @@ public class Transactions {
 
             transaction = builder.sendTransaction(driver.handleServerResponse("BUYOFFER", metaData, null));
             System.out.println("(*) BUYOFFER Transaction sent.. - " + transaction.getId());
+            ObjectMapper mapper = new ObjectMapper();
+                String transactionJson = mapper.writeValueAsString(transaction); // Serialize to JSON
+                int sizeInBytes = transactionJson.getBytes(StandardCharsets.UTF_8).length;
+                double sizeInKB = sizeInBytes / 1024.0;
 
+                System.out.printf("BUYOFFER Transaction size: %d Bytes (%.3f KB)%n", sizeInBytes, sizeInKB);
+            // wait until transaction is commited, or retry every second until 5 seconds
+            waitForCommit(driver, transaction); 
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -276,7 +307,14 @@ public class Transactions {
             // Send the return transaction
             transaction = builder.sendTransaction(driver.handleServerResponse("INVERSE_TXN", metaData, null));
             System.out.println("(*) INVERSE_TXN Transaction sent.. - " + transaction.getId());
-    
+            ObjectMapper mapper = new ObjectMapper();
+                String transactionJson = mapper.writeValueAsString(transaction); // Serialize to JSON
+                int sizeInBytes = transactionJson.getBytes(StandardCharsets.UTF_8).length;
+                double sizeInKB = sizeInBytes / 1024.0;
+
+                System.out.printf("INVERSE_TXN Transaction size: %d Bytes (%.3f KB)%n", sizeInBytes, sizeInKB);
+            // wait until transaction is commited, or retry every second until 5 seconds
+            waitForCommit(driver, transaction); 
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -308,6 +346,17 @@ public class Transactions {
 
                 transaction = builder.sendTransaction(driver.handleServerResponse("ADV", metaData, null));
                 System.out.println("(*) ADV Transaction sent.. - " + transaction.getId());
+
+                ObjectMapper mapper = new ObjectMapper();
+                String transactionJson = mapper.writeValueAsString(transaction); // Serialize to JSON
+                int sizeInBytes = transactionJson.getBytes(StandardCharsets.UTF_8).length;
+                double sizeInKB = sizeInBytes / 1024.0;
+
+                System.out.printf("ADV Transaction size: %d Bytes (%.3f KB)%n", sizeInBytes, sizeInKB);
+
+                // wait until transaction is commited, or retry every second until 5 seconds
+                waitForCommit(driver, transaction); 
+
                 //.addInput(null, fulfill, (EdDSAPublicKey) keys.getPublic())
                 //.addOutput("1", DriverConstants.SMARTCHAINDB_PUBKEY)
         } catch (IOException e) {
@@ -340,6 +389,9 @@ public class Transactions {
 
                 transaction = builder.sendTransaction(driver.handleServerResponse("UPDATE_ADV", metaData, null));
                 System.out.println("(*) UPDATE_ADV Transaction sent.. - " + transaction.getId());
+
+                // wait until transaction is commited, or retry every second until 5 seconds
+                waitForCommit(driver, transaction); 
                 //.addInput(null, fulfill, (EdDSAPublicKey) keys.getPublic())
                 //.addOutput("1", DriverConstants.SMARTCHAINDB_PUBKEY)
         } catch (IOException e) {
@@ -373,7 +425,14 @@ public class Transactions {
 
                 transaction = builder.sendTransaction(driver.handleServerResponse("SELL", metaData, null));
                 System.out.println("(*) SELL Transaction sent.. - " + transaction.getId());
+                ObjectMapper mapper = new ObjectMapper();
+                String transactionJson = mapper.writeValueAsString(transaction); // Serialize to JSON
+                int sizeInBytes = transactionJson.getBytes(StandardCharsets.UTF_8).length;
+                double sizeInKB = sizeInBytes / 1024.0;
 
+                System.out.printf("SELL Transaction size: %d Bytes (%.3f KB)%n", sizeInBytes, sizeInKB);
+                // wait until transaction is commited, or retry every second until 5 seconds
+                waitForCommit(driver, transaction); 
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -405,7 +464,14 @@ public class Transactions {
 
                 transaction = builder.sendTransaction(driver.handleServerResponse("ACCEPT_RETURN", metaData, null));
                 System.out.println("(*) ACCEPT_RETURN Transaction sent.. - " + transaction.getId());
+                ObjectMapper mapper = new ObjectMapper();
+                String transactionJson = mapper.writeValueAsString(transaction); // Serialize to JSON
+                int sizeInBytes = transactionJson.getBytes(StandardCharsets.UTF_8).length;
+                double sizeInKB = sizeInBytes / 1024.0;
 
+                System.out.printf("ACCEPT RETURN Transaction size: %d Bytes (%.3f KB)%n", sizeInBytes, sizeInKB);
+                // wait until transaction is commited, or retry every second until 5 seconds
+                waitForCommit(driver, transaction); 
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -428,7 +494,9 @@ public class Transactions {
                     .buildAndSign((EdDSAPublicKey) keys.getPublic(), (EdDSAPrivateKey) keys.getPrivate())
                     .sendTransaction(driver.handleServerResponse("ACCEPT", metaData, null));
 
-            System.out.println("(*) ACCEPT Transaction sent.. - " + transaction.getId());
+                System.out.println("(*) ACCEPT Transaction sent.. - " + transaction.getId());
+                // wait until transaction is commited, or retry every second until 5 seconds
+                waitForCommit(driver, transaction); 
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -445,5 +513,20 @@ public class Transactions {
                 .buildAndSign((EdDSAPublicKey) keys.getPublic(), (EdDSAPrivateKey) keys.getPrivate());
 
         return builder.validateTransaction();
+    }
+
+    public static void displayPrettyTx(Transaction tx) {
+        String msg = "DETAILS OF TX " + tx.getId();
+        System.out.println("\n\n================ " + msg + " ===================");
+        System.out.println(tx);
+        System.out.println("================ END " + msg + " ===================\n\n");
+    }
+
+    private static void waitForCommit(BigchainDBJavaDriver driver, Transaction transaction) {
+        if (transaction != null) {
+            if (driver.COMMIT_TX) {
+                TransactionsApi.waitForCommit(transaction.getId());
+            }
+        }
     }
 }

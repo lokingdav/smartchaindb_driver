@@ -15,6 +15,7 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.time.format.DateTimeFormatter;
 
 public class Simulation {
 
@@ -95,13 +96,10 @@ public class Simulation {
                     createTxs.add(txId_cre);
                     createFile.write(txId_cre + "\n");
                     createFile.flush();
-                    Thread.sleep(100);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-
-            Thread.sleep(20000);
 
             for (int i = 0; i < allPreReqs.size(); i++) {
                 try {
@@ -201,19 +199,8 @@ public class Simulation {
             }};
 
             MetaData creMetaData = new MetaData();
-            creMetaData.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).toString());
+            creMetaData.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
             createId = Transactions.doCreate(driver, cre_assetData, creMetaData, keys);
-            Thread.sleep(5000);
-
-            //MetaData metaData1 = new MetaData();
-            //metaData1.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).toString());
-            //Transactions.doTransfer(driver, createId, metaData1, keys, transferKeys);
-            //Thread.sleep(2000);
-/* 
-            MetaData metaData2 = new MetaData();
-            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).toString());
-            bid = Transactions.doBid(driver, createId, rfqId, metaData2, keys);
-            Thread.sleep(2000); */
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -236,7 +223,6 @@ public class Simulation {
             MetaData metaData2 = new MetaData();
             metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).toString());
             bid = Transactions.doBid(driver, createId, rfqId, metaData2, keys);
-            Thread.sleep(2000);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -251,10 +237,9 @@ public class Simulation {
         try {
 
             MetaData metaData2 = new MetaData();
-            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).toString());
+            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
             metaData2.setMetaData("minAmt", "1");
             buy = Transactions.doBuyOffer(driver, createId, advId, metaData2, buyerKeys);
-            Thread.sleep(2000);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -269,9 +254,8 @@ public class Simulation {
         try {
 
             MetaData metaData2 = new MetaData();
-            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).toString());
+            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
             sell = Transactions.doSell(driver, txId, advId, buyOfferId, metaData2, Keys);
-            Thread.sleep(2000);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -287,9 +271,8 @@ public class Simulation {
         try {
 
             MetaData metaData2 = new MetaData();
-            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).toString());
+            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
             buy = Transactions.doReturnSell(driver, sellId, createId, metaData2, buyerKeys);
-            Thread.sleep(2000);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -304,9 +287,8 @@ public class Simulation {
         try {
 
             MetaData metaData2 = new MetaData();
-            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).toString());
+            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
             sell = Transactions.doAcceptReturn(driver, assetdId, returnId, sellId, metaData2, Keys);
-            Thread.sleep(2000);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -324,11 +306,28 @@ public class Simulation {
 
             MetaData metaData2 = new MetaData();
             metaData2.setMetaData("kafkaInTimestamp", LocalDateTime.now().toString());
-            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).toString());
+            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
             metaData2.setMetaData("status", status);
             metaData2.setMetaData("minAmt", "1");
             adv = Transactions.doAdv(driver, createId, metaData2, keys);
-            Thread.sleep(2000);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return adv;
+    }
+
+    public static Transaction createTransfer(BigchainDBJavaDriver driver, KeyPair keys, String createId, KeyPair transferKeys) {
+        
+        Transaction adv = null;
+
+        try {
+            
+
+            MetaData metaData2 = new MetaData();
+            metaData2.setMetaData("kafkaInTimestamp", LocalDateTime.now().toString());
+            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
+            adv = Transactions.doTransfer(driver, createId, metaData2, keys, transferKeys);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -345,11 +344,10 @@ public class Simulation {
 
             MetaData metaData2 = new MetaData();
             metaData2.setMetaData("kafkaInTimestamp", LocalDateTime.now().toString());
-            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).toString());
+            metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
             metaData2.setMetaData("status", "Closed");
             
             adv = Transactions.updateAdv(driver, createId, advId, metaData2, keys);
-            Thread.sleep(2000);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -369,7 +367,6 @@ public class Simulation {
             metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).toString());
             metaData2.setMetaData("status", status);
             adv = Transactions.doAdv(driver, createId, metaData2, keys);
-            Thread.sleep(2000);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -386,7 +383,6 @@ public class Simulation {
         for (int i = RFQ_COUNT * ID; i < RFQ_COUNT * (ID + 1); i++) {
             String rfqId = RFQs.get(i);
             List<String> bids = TransactionsApi.getBidsForRFQ(rfqId);
-            Thread.sleep(2000);
 
             System.out.println(bids);
             hmap.put(rfqId, bids);
@@ -404,7 +400,6 @@ public class Simulation {
                 metaData.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).toString());
 
                 Transactions.doAccept(driver, winningBid, entry.getKey(), metaData, keys);
-                Thread.sleep(3000);
             }
         }
     }

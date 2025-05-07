@@ -31,3 +31,4 @@ bin/
 
 # VS Code specific
 .vscode/
+*.log
