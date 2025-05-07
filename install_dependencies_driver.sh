@@ -16,14 +16,12 @@ export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 wget https://services.gradle.org/distributions/gradle-3.0-bin.zip -P /tmp
 sudo unzip -d /opt/gradle /tmp/gradle-*.zip
 ls /opt/gradle/gradle-3.0
-sudo nano /etc/profile.d/gradle.sh
 
-#copy-paste line below into gradle.sh 
-
+#copy the 2 lines below onto your clipboard
 export GRADLE_HOME=/opt/gradle/gradle-3.0 
 export PATH=${GRADLE_HOME}/bin:${PATH}
 
-#press ctr+x then "yes" then "enter" to save and exit
+sudo nano /etc/profile.d/gradle.sh # and paste the 2 lines above into the file then save and exit
 
 sudo chmod +x /etc/profile.d/gradle.sh
 source /etc/profile.d/gradle.sh
