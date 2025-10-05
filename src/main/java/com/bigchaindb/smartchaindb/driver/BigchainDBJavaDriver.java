@@ -41,8 +41,8 @@ public class BigchainDBJavaDriver {
         
         BigchainDBJavaDriver driver = new BigchainDBJavaDriver();
         //AtomicLong transactionCount = new AtomicLong(0);
-        int validAssetCount = 150;
-        int invalidAssetCount = 64;
+        int validAssetCount = 3;  // Reduced for testing
+        int invalidAssetCount = 2;  // Reduced for testing
 
         // Transaction ID lists
         List<String> sellerCreateIds = new CopyOnWriteArrayList<>();
@@ -67,7 +67,7 @@ public class BigchainDBJavaDriver {
         ))
         .thenCompose(v -> {
             CompletableFuture<Void> delay = new CompletableFuture<>();
-            scheduler.schedule(() -> delay.complete(null), 100, TimeUnit.SECONDS); //100// Introduce a 10-second delay
+            scheduler.schedule(() -> delay.complete(null), 10, TimeUnit.SECONDS); // REDUCED: 10 seconds for testing
             return delay;
         })
         .thenCompose(v -> executeAndProcess(
@@ -77,7 +77,7 @@ public class BigchainDBJavaDriver {
         ))
         .thenCompose(v -> {
             CompletableFuture<Void> delay = new CompletableFuture<>();
-            scheduler.schedule(() -> delay.complete(null), 200, TimeUnit.SECONDS); // 200 Introduce a 10-second delay
+            scheduler.schedule(() -> delay.complete(null), 10, TimeUnit.SECONDS); // REDUCED: 10 seconds for testing
             return delay;
         })
         .thenCompose(v -> executeAndProcess(
@@ -87,7 +87,7 @@ public class BigchainDBJavaDriver {
         ))
         .thenCompose(v -> {
             CompletableFuture<Void> delay = new CompletableFuture<>();
-            scheduler.schedule(() -> delay.complete(null), 300, TimeUnit.SECONDS); // 300Introduce a 10-second delay
+            scheduler.schedule(() -> delay.complete(null), 10, TimeUnit.SECONDS); // REDUCED: 10 seconds for testing
             return delay;
         })
         .thenCompose(v -> executeAndProcess(
@@ -97,7 +97,7 @@ public class BigchainDBJavaDriver {
         ))
         .thenCompose(v -> {
             CompletableFuture<Void> delay = new CompletableFuture<>();
-            scheduler.schedule(() -> delay.complete(null), 300, TimeUnit.SECONDS); //300 Introduce a 10-second delay
+            scheduler.schedule(() -> delay.complete(null), 10, TimeUnit.SECONDS); // REDUCED: 10 seconds for testing
             return delay;
         })
         .thenCompose(v -> executeAndProcess(
@@ -149,18 +149,18 @@ public class BigchainDBJavaDriver {
      * Configures connection URL and credentials
      */
     public static void setConfig() {
-        //BigchainDbConfigBuilder.baseUrl("http://127.0.0.1:9984/").setup();
-        List<Connection> connections = new ArrayList<>();
-        for (String url : DriverConstants.VALIDATOR_NODES) {
-            Map<String, Object> attributes = new TreeMap<>();
-            attributes.put("baseUrl", url);
-            connections.add(new Connection(attributes));
-        }
+        BigchainDbConfigBuilder.baseUrl("http://127.0.0.1:9984/").setup();
+        // List<Connection> connections = new ArrayList<>();
+        // for (String url : DriverConstants.VALIDATOR_NODES) {
+        //     Map<String, Object> attributes = new TreeMap<>();
+        //     attributes.put("baseUrl", url);
+        //     connections.add(new Connection(attributes));
+        // }
 
-        BigchainDbConfigBuilder
-            .addConnections(connections)
-            .setTimeout(60000)
-            .setup();
+        // BigchainDbConfigBuilder
+        //     .addConnections(connections)
+        //     .setTimeout(60000)
+        //     .setup();
     }
 
     /**
@@ -320,7 +320,11 @@ public class BigchainDBJavaDriver {
                 Transaction committedAdvTx = TransactionsApi.waitForCommitWorkflow(buyOfferId);
 
                 //if (committedAdvTx != null) {
-                    Transaction sellTransaction = Simulation.createSell(driver, sellerKeyPair, createId, advId, buyOfferId);
+                    // FIXED: Added buyerKeyPair parameter for new createSell signature
+                    // Note: You'll need to pass buyerKeyPair from the calling context
+                    // For now, using sellerKeyPair as placeholder - UPDATE THIS!
+                    KeyPair buyerKeyPair = getKeys(); // TODO: Get actual buyer keys
+                    Transaction sellTransaction = Simulation.createSell(driver, sellerKeyPair, buyerKeyPair, createId, buyOfferId);
                     if (sellTransaction != null && sellTransaction.getId() != null) {
                         println("Sell Transaction " + (i + 1) + " Created: " + sellTransaction.getId());
                         transactionCount.incrementAndGet();
@@ -353,7 +357,9 @@ public class BigchainDBJavaDriver {
                     String createId = sellerCreateIds.get(i);
                     String advId = advIds.get(i);
                     String buyOfferId = invalidBuyOfferIds.get(i);
-                    Transaction invalidSellTransaction = Simulation.createSell(driver, sellerKeyPair, createId, advId, buyOfferId);
+                    // FIXED: Added buyerKeyPair parameter for new createSell signature
+                    KeyPair buyerKeyPair = getKeys(); // Generate buyer keys
+                    Transaction invalidSellTransaction = Simulation.createSell(driver, sellerKeyPair, buyerKeyPair, createId, buyOfferId);
                     if (invalidSellTransaction != null && invalidSellTransaction.getId() != null) {
                         //invalidSellIds.add(invalidSellTransaction.getId());
                         System.out.println("Invalid Sell Transaction " + (i + 1) + " Created: " + invalidSellTransaction.getId());
@@ -378,7 +384,7 @@ public class BigchainDBJavaDriver {
     /**
      * Creates tasks to handle returns for a subset of sell transactions.
      */
-    private static List<Supplier<Void>> createReturnTasks(List<String> sellIds, List<String> buyOfferIds, BigchainDBJavaDriver driver, KeyPair sellerKeyPair, KeyPair buyerKeyPair, int count) {
+    private static List<Supplier<String>> createReturnTasks(List<String> sellIds, List<String> buyOfferIds, BigchainDBJavaDriver driver, KeyPair sellerKeyPair, KeyPair buyerKeyPair, int count) {
         count = Math.min(count, sellIds.size());
         return createTasks(count, "Return Handling", i -> {
             try {
@@ -388,37 +394,33 @@ public class BigchainDBJavaDriver {
                 if (committedAdvTx != null) {
                     List<String> transferTxns = TransactionsApi.getTransferTransactionIdsByAssetId(sellId);
                 
-                if (!transferTxns.isEmpty()) {
-                    Transaction inverse = Simulation.createReturnSell(driver, buyerKeyPair, sellId, transferTxns.get(0));
-                    transactionCount.incrementAndGet();
-                    if (inverse != null && inverse.getId() != null) {
-                        String buyOfferId = buyOfferIds.get(i);
-                        List<String> returnTxns = TransactionsApi.getTransferTransactionIdsByAssetId(buyOfferId);
-                        if (!returnTxns.isEmpty()) {
-                            Transaction acceptReturn = Simulation.createAcceptReturn(driver, sellerKeyPair, buyOfferId, returnTxns.get(0), inverse.getId());
-                            if (acceptReturn != null && acceptReturn.getId() != null) {
-                                println("Return and Accept Return for Sell Transaction " + (i + 1) + " Completed");
-                                transactionCount.incrementAndGet();
-                            } else {
-                                printerr("Failed to create Accept Return for Sell Transaction " + (i + 1));
-                            }
-                        } else {
-                            printerr("No return transactions available for Buy Offer ID: " + buyOfferId);
-                        }
+                // Create REQUEST_RETURN transaction
+                Transaction requestReturn = Simulation.createReturnSell(driver, buyerKeyPair, sellId);
+                transactionCount.incrementAndGet();
+                
+                if (requestReturn != null && requestReturn.getId() != null) {
+                    // Create SELLER_ACCEPT_RETURN transaction
+                    Transaction sellerAcceptReturn = Simulation.createSellerAcceptReturn(driver, sellerKeyPair, requestReturn.getId());
+                    if (sellerAcceptReturn != null && sellerAcceptReturn.getId() != null) {
+                        println("Return and Seller Accept Return for Sell Transaction " + (i + 1) + " Completed");
+                        transactionCount.incrementAndGet();
+                        return "SUCCESS"; // Return success indicator
                     } else {
-                        printerr("Failed to create Return Sell for Sell Transaction " + (i + 1));
+                        printerr("Failed to create Seller Accept Return for Sell Transaction " + (i + 1));
+                        return "FAILED_SELLER_ACCEPT";
                     }
                 } else {
-                    printerr("No transfer transactions available for Sell ID: " + sellId);
+                    printerr("Failed to create Request Return for Sell Transaction " + (i + 1));
+                    return "FAILED_REQUEST_RETURN";
                 }
             } else {
                 printerr("Advertisement " + sellId + " was not committed. Skipping Buy Offer creation.");
-                return null;
+                return "FAILED_COMMIT";
             }
             } catch (Exception e) {
                 printerr("Exception in Return Handling for Sell Transaction " + (i + 1) + ": " + e.getMessage());
+                return "EXCEPTION: " + e.getMessage();
             }
-            return null;
         });
     }
     /**

@@ -396,16 +396,22 @@ public class BigchainDbTransactionBuilder {
                     || this.operation == Operations.BID
                     || this.operation == Operations.ACCEPT
                     || this.operation == Operations.ADV
+                    || this.operation == Operations.ADVERTISEMENT  // FIXED: Added for SHACL compatibility
                     || this.operation == Operations.UPDATE_ADV
                     || this.operation == Operations.BUYOFFER
+                    || this.operation == Operations.BUY_OFFER  // FIXED: Added for SHACL compatibility
                     || this.operation == Operations.INVERSE_TXN
                     || this.operation == Operations.SELL
-                    || this.operation == Operations.ACCEPT_RETURN) {
+                    || this.operation == Operations.REQUEST_RETURN
+                    || this.operation == Operations.ACCEPT_RETURN
+                    || this.operation == Operations.SELLER_ACCEPT_RETURN) {
                 this.transaction.setOperation(this.operation.name());
             } else {
                 throw new Exception("Invalid Operations value. Accepted values are "
                         + "[Operations.CREATE, Operations.TRANSFER, Operations.REQUEST_FOR_QUOTE, "
-                        + "Operations.INTEREST, Operations.PRE_REQUEST, Operations.BID, Operations.ACCEPT]");
+                        + "Operations.INTEREST, Operations.PRE_REQUEST, Operations.BID, Operations.ACCEPT, "
+                        + "Operations.ADVERTISEMENT, Operations.BUY_OFFER, Operations.SELL, "
+                        + "Operations.REQUEST_RETURN, Operations.ACCEPT_RETURN, Operations.SELLER_ACCEPT_RETURN]");
             }
 
             if (this.assets != null) {
@@ -490,7 +496,13 @@ public class BigchainDbTransactionBuilder {
 
             byte[] sha3Hash;
             if (Operations.TRANSFER.name().equals(this.transaction.getOperation())
-                    || Operations.BID.name().equals(this.transaction.getOperation()) || Operations.BUYOFFER.name().equals(this.transaction.getOperation()) || Operations.SELL.name().equals(this.transaction.getOperation()) || Operations.PRE_REQUEST.name().equals(this.transaction.getOperation())  || Operations.INTEREST.name().equals(this.transaction.getOperation())) {
+                    || Operations.BID.name().equals(this.transaction.getOperation()) 
+                    || Operations.BUYOFFER.name().equals(this.transaction.getOperation()) 
+                    || Operations.SELL.name().equals(this.transaction.getOperation()) 
+                    || Operations.PRE_REQUEST.name().equals(this.transaction.getOperation())  
+                    || Operations.INTEREST.name().equals(this.transaction.getOperation())
+                    || Operations.REQUEST_RETURN.name().equals(this.transaction.getOperation())
+                    || Operations.SELLER_ACCEPT_RETURN.name().equals(this.transaction.getOperation())) {
                 // it's a transfer operation: make sure to update the hash pre-image with
                 // the fulfilling transaction IDs and output indexes
                 StringBuilder preimage = new StringBuilder(transactionJObject.toString());

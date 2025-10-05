@@ -30,16 +30,24 @@ public enum Operations {
 
 	ACCEPT("ACCEPT"),
 	
-	ADV("ADV"),
+	// FIXED: Changed from ADV to ADVERTISEMENT for SHACL compatibility
+	ADVERTISEMENT("ADVERTISEMENT"),
+	ADV("ADV"),  // Keep for backward compatibility
 	UPDATE_ADV("UPDATE_ADV"),
 
-	BUYOFFER("BUYOFFER"),
+	// FIXED: Changed from BUYOFFER to BUY_OFFER for SHACL compatibility
+	BUY_OFFER("BUY_OFFER"),
+	BUYOFFER("BUYOFFER"),  // Keep for backward compatibility
 
 	INVERSE_TXN("INVERSE_TXN"),
 
 	SELL("SELL"),
 
-	ACCEPT_RETURN("ACCEPT_RETURN");
+	REQUEST_RETURN("REQUEST_RETURN"),
+
+	ACCEPT_RETURN("ACCEPT_RETURN"),
+
+	SELLER_ACCEPT_RETURN("SELLER_ACCEPT_RETURN");
 
 	/** The value. */
 	private final String value;

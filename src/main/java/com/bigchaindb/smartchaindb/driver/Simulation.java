@@ -16,6 +16,8 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.time.format.DateTimeFormatter;
+import net.i2p.crypto.eddsa.EdDSAPublicKey;
+import com.bigchaindb.util.KeyPairUtils;
 
 public class Simulation {
 
@@ -230,16 +232,32 @@ public class Simulation {
         return bid;
     }
 
-    public static Transaction createBuyOffer(BigchainDBJavaDriver driver, KeyPair buyerKeys,String advId, String createId) {
-        
+    /**
+     * Creates a BUY_OFFER transaction (FIXED for SHACL compatibility)
+     * @param driver BigchainDB driver instance
+     * @param buyerKeys Buyer's keypair
+     * @param advId Advertisement transaction ID
+     * @param paymentAssetId Buyer's payment asset ID
+     * @return Transaction object
+     */
+    public static Transaction createBuyOffer(BigchainDBJavaDriver driver, KeyPair buyerKeys, String advId, String paymentAssetId) {
         Transaction buy = null;
 
         try {
-
             MetaData metaData2 = new MetaData();
             metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
-            metaData2.setMetaData("minAmt", "1");
-            buy = Transactions.doBuyOffer(driver, createId, advId, metaData2, buyerKeys);
+            
+            // FIXED: Add all required metadata fields for BUY_OFFER
+            metaData2.setMetaData("buyer_public_key", KeyPairUtils.encodePublicKeyInBase58((EdDSAPublicKey) buyerKeys.getPublic()));
+            metaData2.setMetaData("offer_amount", "5000");  // Example amount
+            metaData2.setMetaData("offer_currency", "USD");
+            metaData2.setMetaData("offer_timestamp", LocalDateTime.now(Clock.systemUTC()).toString());
+            metaData2.setMetaData("offer_expiry", LocalDateTime.now(Clock.systemUTC()).plusDays(7).toString());
+            metaData2.setMetaData("escrow_public_key", KeyPairUtils.encodePublicKeyInBase58((EdDSAPublicKey) buyerKeys.getPublic())); // Using buyer as escrow for simplicity
+            metaData2.setMetaData("payment_asset_id", paymentAssetId);
+            
+            // FIXED: Use new method signature (paymentAssetId, advId, metadata, keys)
+            buy = Transactions.doBuyOffer(driver, paymentAssetId, advId, metaData2, buyerKeys);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -247,15 +265,31 @@ public class Simulation {
         return buy;
     }
 
-    public static Transaction createSell(BigchainDBJavaDriver driver, KeyPair Keys,String txId,String advId, String buyOfferId) {
-        
+    /**
+     * Creates a SELL transaction (FIXED for SHACL compatibility)
+     * @param driver BigchainDB driver instance
+     * @param sellerKeys Seller's keypair
+     * @param buyerKeys Buyer's keypair
+     * @param assetId Asset transaction ID
+     * @param buyOfferId Buy offer transaction ID
+     * @return Transaction object
+     */
+    public static Transaction createSell(BigchainDBJavaDriver driver, KeyPair sellerKeys, KeyPair buyerKeys, String assetId, String buyOfferId) {
         Transaction sell = null;
 
         try {
-
             MetaData metaData2 = new MetaData();
             metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
-            sell = Transactions.doSell(driver, txId, advId, buyOfferId, metaData2, Keys);
+            
+            // FIXED: Add all required metadata fields for SELL
+            metaData2.setMetaData("seller_public_key", KeyPairUtils.encodePublicKeyInBase58((EdDSAPublicKey) sellerKeys.getPublic()));
+            metaData2.setMetaData("buyer_public_key", KeyPairUtils.encodePublicKeyInBase58((EdDSAPublicKey) buyerKeys.getPublic()));
+            metaData2.setMetaData("sale_amount", "5000");  // Example amount
+            metaData2.setMetaData("sale_currency", "USD");
+            metaData2.setMetaData("sale_timestamp", LocalDateTime.now(Clock.systemUTC()).toString());
+            
+            // FIXED: Use new method signature (assetId, buyOfferId, metadata, sellerKeys, buyerKeys)
+            sell = Transactions.doSell(driver, assetId, buyOfferId, metaData2, sellerKeys, buyerKeys);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -264,52 +298,90 @@ public class Simulation {
     }
 
     
-    public static Transaction createReturnSell(BigchainDBJavaDriver driver, KeyPair buyerKeys,String sellId, String createId) {
+    public static Transaction createReturnSell(BigchainDBJavaDriver driver, KeyPair buyerKeys, String sellId) {
         
-        Transaction buy = null;
+        Transaction requestReturn = null;
 
         try {
-
             MetaData metaData2 = new MetaData();
+            metaData2.setMetaData("requester_public_key", KeyPairUtils.encodePublicKeyInBase58((EdDSAPublicKey) buyerKeys.getPublic()));
+            metaData2.setMetaData("return_reason", "Product defect");
+            metaData2.setMetaData("return_request_timestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
             metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
-            buy = Transactions.doReturnSell(driver, sellId, createId, metaData2, buyerKeys);
+            
+            // Add return policy details
+            Map<String, Object> returnPolicyDetails = new HashMap<>();
+            returnPolicyDetails.put("return_window_days", 30);
+            returnPolicyDetails.put("return_conditions", "Product must be in original condition");
+            returnPolicyDetails.put("return_status", "PENDING");
+            metaData2.setMetaData("return_policy_details", returnPolicyDetails);
+            
+            requestReturn = Transactions.doReturnSell(driver, sellId, metaData2, buyerKeys);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return buy;
+        return requestReturn;
     }
 
-    public static Transaction createAcceptReturn(BigchainDBJavaDriver driver, KeyPair Keys,String assetdId,String returnId, String sellId) {
+    public static Transaction createSellerAcceptReturn(BigchainDBJavaDriver driver, KeyPair keys, String requestReturnId) {
         
-        Transaction sell = null;
+        Transaction sellerAcceptReturn = null;
 
         try {
-
             MetaData metaData2 = new MetaData();
+            metaData2.setMetaData("seller_public_key", KeyPairUtils.encodePublicKeyInBase58((EdDSAPublicKey) keys.getPublic()));
+            metaData2.setMetaData("acceptance_timestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
             metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
-            sell = Transactions.doAcceptReturn(driver, assetdId, returnId, sellId, metaData2, Keys);
+            
+            // Add refund details
+            Map<String, Object> refundDetails = new HashMap<>();
+            refundDetails.put("refund_amount", 100.0);
+            refundDetails.put("refund_currency", "USD");
+            refundDetails.put("refund_method", "Bank transfer");
+            metaData2.setMetaData("refund_details", refundDetails);
+            
+            metaData2.setMetaData("processing_notes", "Return accepted by seller, processing refund");
+            
+            sellerAcceptReturn = Transactions.doSellerAcceptReturn(driver, requestReturnId, metaData2, keys);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return sell;
+        return sellerAcceptReturn;
     }
 
 
+    /**
+     * Creates an ADVERTISEMENT transaction (FIXED for SHACL compatibility)
+     * @param driver BigchainDB driver instance
+     * @param keys Advertiser's keypair
+     * @param createId Asset transaction ID
+     * @param status Advertisement status (should be OPEN, LOCKED, or CLOSED)
+     * @return Transaction object
+     */
     public static Transaction createAdv(BigchainDBJavaDriver driver, KeyPair keys, String createId, String status) {
-        
         Transaction adv = null;
 
         try {
-            
-
             MetaData metaData2 = new MetaData();
             metaData2.setMetaData("kafkaInTimestamp", LocalDateTime.now().toString());
             metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
-            metaData2.setMetaData("status", status);
-            metaData2.setMetaData("minAmt", "1");
-            adv = Transactions.doAdv(driver, createId, metaData2, keys);
+            
+            // FIXED: Add all required metadata fields for ADVERTISEMENT
+            // FIXED: Ensure status is uppercase (OPEN, LOCKED, CLOSED)
+            metaData2.setMetaData("status", status.toUpperCase());
+            metaData2.setMetaData("advertiser_public_key", KeyPairUtils.encodePublicKeyInBase58((EdDSAPublicKey) keys.getPublic()));
+            metaData2.setMetaData("price", "5000.00");  // Example price
+            metaData2.setMetaData("description", "Industrial asset for sale");
+            metaData2.setMetaData("category", "Manufacturing");
+            metaData2.setMetaData("condition", "Used");
+            metaData2.setMetaData("expiry_date", LocalDateTime.now(Clock.systemUTC()).plusDays(30).toString());
+            metaData2.setMetaData("contact_info", "seller@example.com");
+            metaData2.setMetaData("location", "Factory District");
+            
+            // FIXED: Use new method doAdvertisement
+            adv = Transactions.doAdvertisement(driver, createId, metaData2, keys);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -345,9 +417,9 @@ public class Simulation {
             MetaData metaData2 = new MetaData();
             metaData2.setMetaData("kafkaInTimestamp", LocalDateTime.now().toString());
             metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")));
-            metaData2.setMetaData("status", "Closed");
+            metaData2.setMetaData("status", "CLOSED");
             
-            adv = Transactions.updateAdv(driver, createId, advId, metaData2, keys);
+            adv = Transactions.updateAdv(driver, advId, metaData2, keys);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -355,18 +427,31 @@ public class Simulation {
         return adv;
     }
 
-    public static Transaction updateAdv(BigchainDBJavaDriver driver, KeyPair keys, String createId,String advId, String status) {
-        
+    /**
+     * Updates an ADVERTISEMENT (creates new with updated status) - FIXED for SHACL compatibility
+     */
+    public static Transaction updateAdv(BigchainDBJavaDriver driver, KeyPair keys, String createId, String advId, String status) {
         Transaction adv = null;
 
         try {
-            
-
             MetaData metaData2 = new MetaData();
             metaData2.setMetaData("kafkaInTimestamp", LocalDateTime.now().toString());
             metaData2.setMetaData("requestCreationTimestamp", LocalDateTime.now(Clock.systemUTC()).toString());
-            metaData2.setMetaData("status", status);
-            adv = Transactions.doAdv(driver, createId, metaData2, keys);
+            
+            // FIXED: Add all required metadata fields
+            // FIXED: Ensure status is uppercase (OPEN, LOCKED, CLOSED)
+            metaData2.setMetaData("status", status.toUpperCase());
+            metaData2.setMetaData("advertiser_public_key", KeyPairUtils.encodePublicKeyInBase58((EdDSAPublicKey) keys.getPublic()));
+            metaData2.setMetaData("price", "5000.00");
+            metaData2.setMetaData("description", "Industrial asset for sale");
+            metaData2.setMetaData("category", "Manufacturing");
+            metaData2.setMetaData("condition", "Used");
+            metaData2.setMetaData("expiry_date", LocalDateTime.now(Clock.systemUTC()).plusDays(30).toString());
+            metaData2.setMetaData("contact_info", "seller@example.com");
+            metaData2.setMetaData("location", "Factory District");
+            
+            // FIXED: Use doAdvertisement instead of doAdv
+            adv = Transactions.doAdvertisement(driver, createId, metaData2, keys);
         } catch (Exception e) {
             e.printStackTrace();
         }
